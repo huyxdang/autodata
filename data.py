@@ -22,9 +22,9 @@ def filter_document(text):
 
 
 def process_document(text):
-    # Truncate very long docs to ~8K chars (~2K tokens)
-    if len(text) > 8000:
-        text = text[:8000]
+    # Truncate very long docs to ~6K chars (~1.5K tokens)
+    if len(text) > 6000:
+        text = text[:6000]
     return text
 
 
