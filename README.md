@@ -2,7 +2,7 @@
 
 ![progress](progress.png)
 
-A fork of [karpathy/autoresearch](https://github.com/karpathy/autoresearch) that flips the experiment: instead of letting an AI agent optimize the **model architecture**, the agent optimizes the **data pipeline**. The model, tokenizer, and evaluation are frozen — the only variable is what data the model sees and how it's processed.
+A fork of [karpathy/autoresearch](https://github.com/karpathy/autoresearch) that flips the experiment: instead of letting an AI agent optimize the **model architecture**, the agent optimizes the **data pipeline**. The model, tokenizer, and evaluation are frozen — the only variable is what data the model sees and how it's arranged.
 
 The hypothesis: maybe smarter data curation matters more than a better architecture.
 
