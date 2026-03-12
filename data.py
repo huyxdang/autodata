@@ -30,12 +30,7 @@ def process_document(text):
 
 def _document_batches(split, tokenizer_batch_size=128):
     for doc_batch, epoch in _raw_document_batches(split, tokenizer_batch_size):
-        processed = []
-        for text in doc_batch:
-            if filter_document(text):
-                text = process_document(text)
-                if text:
-                    processed.append(text)
+        processed = [text[:6000] for text in doc_batch if len(text) >= 100]
         if processed:
             yield processed, epoch
 
