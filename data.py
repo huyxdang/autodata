@@ -24,7 +24,7 @@ def filter_document(text):
         return False
     # Filter docs with very low alpha ratio (tables, code dumps, garbage)
     alpha_count = sum(1 for c in text[:500] if c.isalpha())
-    if alpha_count / min(len(text), 500) < 0.4:
+    if alpha_count / min(len(text), 500) < 0.3:
         return False
     return True
 
