@@ -13,14 +13,14 @@ To set up a new experiment, work with the user to:
    - `prepare.py` — fixed constants, data prep, tokenizer, dataloader, evaluation. Do not modify.
    - `train.py` — fixed model architecture, optimizer, training loop. Do not modify.
    - `data.py` — the file you modify. Document filtering, preprocessing, mixing, curriculum.
-4. **Verify data exists**: Check that `~/.cache/autoresearch/` contains data shards and a tokenizer. If not, tell the human to run `uv run prepare.py`.
+4. **Verify data exists**: Ask the human if they have already run `modal run modal_app.py --prepare`. If not, tell them to run it (this downloads data shards and trains the tokenizer on Modal).
 5. **Initialize results.tsv**: Create `results.tsv` with just the header row. The baseline will be recorded after the first run.
 6. **Confirm and go**: Confirm setup looks good.
 
 Once you get confirmation, kick off the experimentation.
 
 ## Experimentation
-Each experiment runs on a single GPU. The training script runs for a **fixed time budget of 5 minutes** (wall clock training time, excluding startup/compilation). You launch it simply as: `uv run train.py`.
+Each experiment runs on a remote GPU via Modal. The training script runs for a **fixed time budget of 5 minutes** (wall clock training time, excluding startup/compilation). You launch it simply as: `modal run modal_app.py`.
 
 **What you CAN do:**
 - Modify `data.py` — this is the only file you edit. Everything in the data pipeline is fair game: document filtering, preprocessing, cleaning, mixing, weighting, curriculum ordering, length thresholds, deduplication, etc.
@@ -104,7 +104,7 @@ LOOP FOREVER:
 1. Look at the git state: the current branch/commit we're on
 2. Modify `data.py` with a data pipeline idea.
 3. git commit
-4. Run the experiment: `uv run train.py > run.log 2>&1` (redirect everything — do NOT use tee or let output flood your context)
+4. Run the experiment: `modal run modal_app.py > run.log 2>&1` (redirect everything — do NOT use tee or let output flood your context)
 5. Read out the results: `grep "^val_bpb:\|^peak_vram_mb:" run.log`
 6. If the grep output is empty, the run crashed. Run `tail -n 50 run.log` to read the Python stack trace and attempt a fix. If you can't get things to work after more than a few attempts, give up.
 7. Record the results in the tsv (NOTE: do not commit the results.tsv file, leave it untracked by git)
