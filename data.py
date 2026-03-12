@@ -19,8 +19,12 @@ from prepare import (
 # ---------------------------------------------------------------------------
 
 def filter_document(text):
-    """Filter out short, low-quality documents."""
+    """Filter out short and non-prose documents."""
     if len(text) < 100:
+        return False
+    # Filter docs with very low alpha ratio (tables, code dumps, garbage)
+    alpha_count = sum(1 for c in text[:500] if c.isalpha())
+    if alpha_count / min(len(text), 500) < 0.4:
         return False
     return True
 
