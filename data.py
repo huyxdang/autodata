@@ -19,15 +19,9 @@ from prepare import (
 # ---------------------------------------------------------------------------
 
 def filter_document(text):
-    """Return True to keep the document, False to discard it.
-
-    Examples of things to try:
-    - Minimum/maximum length thresholds
-    - Language detection
-    - Quality heuristics (avg word length, punctuation ratio, etc.)
-    - Removing documents with too much repetition
-    - Filtering by content type or domain
-    """
+    """Filter out short, low-quality documents."""
+    if len(text) < 100:
+        return False
     return True
 
 
