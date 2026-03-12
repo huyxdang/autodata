@@ -22,32 +22,26 @@ def filter_document(text):
 
 
 def process_document(text):
-    # Truncate very long docs to ~6K chars (~1.5K tokens)
     if len(text) > 6000:
         text = text[:6000]
     return text
 
 
-def _document_batches(split, tokenizer_batch_size=128):
-    for doc_batch, epoch in _raw_document_batches(split, tokenizer_batch_size):
-        processed = [text[:6000] for text in doc_batch if len(text) >= 100]
-        if processed:
-            yield processed, epoch
-
-
 def make_dataloader(tokenizer, B, T, split, buffer_size=1000):
     assert split in ["train", "val"]
     row_capacity = T + 1
-    batches = _document_batches(split)
+    raw_batches = _raw_document_batches(split)
     bos_token = tokenizer.get_bos_token_id()
     doc_buffer = []
     epoch = 1
 
     def refill_buffer():
         nonlocal epoch
-        doc_batch, epoch = next(batches)
-        token_lists = tokenizer.encode(doc_batch, prepend=bos_token)
-        doc_buffer.extend(token_lists)
+        doc_batch, epoch = next(raw_batches)
+        filtered = [text[:6000] for text in doc_batch if len(text) >= 100]
+        if filtered:
+            token_lists = tokenizer.encode(filtered, prepend=bos_token)
+            doc_buffer.extend(token_lists)
 
     row_buffer = torch.empty((B, row_capacity), dtype=torch.long)
     cpu_buffer = torch.empty(2 * B * T, dtype=torch.long, pin_memory=True)
