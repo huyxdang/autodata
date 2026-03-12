@@ -16,6 +16,8 @@ def sample_documents(n=10):
 
 
 def filter_document(text):
+    if len(text) < 100:
+        return False
     return True
 
 
