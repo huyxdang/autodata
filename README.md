@@ -25,14 +25,18 @@ Training runs on [Modal](https://modal.com) so you don't need a local GPU. The r
 **Requirements:** Python 3.10+, a Modal account.
 
 ```bash
-# 1. Install Modal CLI
+# 1. Create a virtual environment and install dependencies
+python -m venv .venv
+source .venv/bin/activate
+
+# 2. Install Modal CLI
 pip install modal
 modal setup  # one-time auth
 
-# 2. Download data and train tokenizer on Modal (one-time, ~2 min)
+# 3. Download data and train tokenizer on Modal (one-time, ~2 min)
 modal run modal_app.py --prepare
 
-# 3. Run a single training experiment (~5 min on a remote H100)
+# 4. Run a single training experiment (~5 min on a remote H100)
 modal run modal_app.py
 ```
 
