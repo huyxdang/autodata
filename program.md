@@ -1,6 +1,6 @@
 # autodata
 
-This is an experiment to have the LLM optimize training data instead of model architecture.
+This is an experiment to optimize training data to train a language model.
 
 ## Setup
 
@@ -12,7 +12,7 @@ To set up a new experiment, work with the user to:
    - `README.md` — repository context.
    - `prepare.py` — fixed constants, data prep, tokenizer, dataloader, evaluation. Do not modify.
    - `train.py` — fixed model architecture, optimizer, training loop. Do not modify.
-   - `data.py` — the file you modify. Document filtering, preprocessing, mixing, curriculum.
+   - `data.py` — the file you modify to process training data.
 4. **Verify data exists**: Ask the human if they have already run `modal run modal_app.py --prepare`. If not, tell them to run it (this downloads data shards and trains the tokenizer on Modal).
 5. **Initialize results.tsv**: Create `results.tsv` with just the header row. The baseline will be recorded after the first run.
 6. **Confirm and go**: Confirm setup looks good.
@@ -23,7 +23,7 @@ Once you get confirmation, kick off the experimentation.
 Each experiment runs on a remote GPU via Modal. The training script runs for a **fixed time budget of 5 minutes** (wall clock training time, excluding startup/compilation). You launch it simply as: `modal run modal_app.py`.
 
 **What you CAN do:**
-- Modify `data.py` — this is the only file you edit. Everything in the data pipeline is fair game: document filtering, preprocessing, cleaning, mixing, weighting, curriculum ordering, length thresholds, deduplication, etc.
+- Modify `data.py` — this is the only file you edit. Anything that changes what data the model sees or how it's arranged is fair game. You can rewrite the entire file if you want.
 
 **What you CANNOT do:**
 - Modify `train.py`. It is read-only. The model architecture, optimizer, and training loop are fixed.
@@ -34,6 +34,8 @@ Each experiment runs on a remote GPU via Modal. The training script runs for a *
 
 **The goal is simple: get the lowest val_bpb by improving the data pipeline.** The model sees exactly the same architecture and hyperparameters every run. The only variable is what data it trains on and how that data is processed. Since the time budget is fixed at 5 minutes, filtering out low-quality data means the model spends more of its budget on high-quality data.
 
+**CPU cost matters.** The data pipeline runs on CPU and the timer includes data loading. Heavy processing eats into the 5-minute training budget, meaning fewer training steps.
+
 **VRAM** should stay roughly constant since the model is fixed, but data pipeline changes (e.g. document length distribution) could affect it slightly.
 
 **Simplicity criterion**: All else being equal, simpler is better. A small improvement that adds ugly complexity is not worth it. Conversely, removing something and getting equal or better results is a great outcome — that's a simplification win. When evaluating whether to keep a change, weigh the complexity cost against the improvement magnitude. A 0.001 val_bpb improvement that adds 20 lines of hacky code? Probably not worth it. A 0.001 val_bpb improvement from deleting code? Definitely keep. An improvement of ~0 but much simpler code? Keep.
@@ -42,9 +44,7 @@ Each experiment runs on a remote GPU via Modal. The training script runs for a *
 
 ## What's in data.py
 
-The entire `data.py` file is yours to modify however you want. Rewrite it, restructure it, add new functions, delete existing ones — whatever gets the lowest val_bpb. The default file ships with two simple hooks (`filter_document`, `process_document`) as starting points, but you are not limited to them.
-
-Anything in the data pipeline is fair game: document filtering, preprocessing, quality scoring, curriculum ordering, data mixing strategies, custom packing, batch composition, document weighting, deduplication — if it changes what data the model sees or in what order, go for it.
+The entire `data.py` file is yours to modify however you want. Rewrite it, restructure it, add new functions, delete existing ones — whatever gets the lowest val_bpb.
 
 ## Output format
 
@@ -117,4 +117,4 @@ The idea is that you are a completely autonomous researcher trying things out. I
 
 **Crashes**: If a run crashes (e.g. empty batch from over-filtering, or a bug), use your judgment: If it's something dumb and easy to fix (e.g. a typo, a missing import), fix it and re-run. If the idea itself is fundamentally broken, just skip it, log "crash" as the status in the tsv, and move on.
 
-**NEVER STOP**: Once the experiment loop has begun (after the initial setup), do NOT pause to ask the human if you should continue. Do NOT ask "should I keep going?" or "is this a good stopping point?". The human might be asleep, or gone from a computer and expects you to continue working *indefinitely* until you are manually stopped. You are autonomous. If you run out of ideas, think harder — try combining previous near-misses, try more radical filtering strategies, look at the actual data to understand what's in it. The loop runs until the human interrupts you, period.
+**NEVER STOP**: Once the experiment loop has begun (after the initial setup), do NOT pause to ask the human if you should continue. Do NOT ask "should I keep going?" or "is this a good stopping point?". The human might be asleep, or gone from a computer and expects you to continue working *indefinitely* until you are manually stopped. You are autonomous. If you run out of ideas, think harder — try combining previous near-misses, try more radical approaches, draw on best practices from papers and the ML community. The loop runs until the human interrupts you, period.
