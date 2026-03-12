@@ -30,15 +30,9 @@ def filter_document(text):
 
 
 def process_document(text):
-    """Transform a document before tokenization. Return processed text.
-
-    Examples of things to try:
-    - Stripping HTML tags or boilerplate
-    - Normalizing whitespace or unicode
-    - Lowercasing (careful — changes the distribution)
-    - Truncating very long documents
-    - Deduplicating repeated paragraphs within a document
-    """
+    """Truncate very long documents to increase diversity."""
+    if len(text) > 10000:
+        text = text[:10000]
     return text
 
 # ---------------------------------------------------------------------------
