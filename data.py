@@ -4,7 +4,7 @@ Data pipeline for autodata experiments. This is the only file the agent edits.
 Modify document filtering, preprocessing, mixing, and curriculum here.
 The tokenizer, model architecture, and evaluation metric are all fixed.
 
-Usage: imported by train.py
+Usage: imported by train.py hihi
 """
 
 import torch
