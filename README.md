@@ -35,7 +35,7 @@ source .venv/bin/activate
 pip install modal
 modal setup  # one-time auth
 
-# 3. Download data and train tokenizer on Modal (one-time, ~2 min)
+# 3. Download data and train tokenizer on Modal (one-time)
 modal run modal_app.py --prepare
 
 # 4. Run a single training experiment (~5 min on a remote H100)
