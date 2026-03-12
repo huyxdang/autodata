@@ -1,12 +1,3 @@
-"""
-Data pipeline for autodata experiments. This is the only file the agent edits.
-
-Modify document filtering, preprocessing, mixing, and curriculum here.
-The tokenizer, model architecture, and evaluation metric are all fixed.
-
-Usage: imported by train.py hihi
-"""
-
 import torch
 
 from prepare import (
@@ -14,33 +5,25 @@ from prepare import (
     MAX_SEQ_LEN,
 )
 
-# ---------------------------------------------------------------------------
-# Document Processing (agent modifies this section)
-# ---------------------------------------------------------------------------
+
+def sample_documents(n=10):
+    docs = []
+    for batch, _ in _raw_document_batches("train"):
+        docs.extend(batch[:n - len(docs)])
+        if len(docs) >= n:
+            break
+    return docs[:n]
+
 
 def filter_document(text):
-    """Filter out short and non-prose documents."""
-    if len(text) < 100:
-        return False
-    # Filter docs with very low alpha ratio (tables, code dumps, garbage)
-    alpha_count = sum(1 for c in text[:500] if c.isalpha())
-    if alpha_count / min(len(text), 500) < 0.3:
-        return False
     return True
 
 
 def process_document(text):
-    """Truncate very long documents to increase diversity."""
-    if len(text) > 10000:
-        text = text[:10000]
     return text
 
-# ---------------------------------------------------------------------------
-# Document Stream (wraps raw shards with processing pipeline above)
-# ---------------------------------------------------------------------------
 
 def _document_batches(split, tokenizer_batch_size=128):
-    """Processed document stream. Applies filter and process to raw documents."""
     for doc_batch, epoch in _raw_document_batches(split, tokenizer_batch_size):
         processed = []
         for text in doc_batch:
@@ -52,17 +35,7 @@ def _document_batches(split, tokenizer_batch_size=128):
             yield processed, epoch
 
 
-# ---------------------------------------------------------------------------
-# Dataloader (uses processed document stream)
-# ---------------------------------------------------------------------------
-
 def make_dataloader(tokenizer, B, T, split, buffer_size=1000):
-    """
-    BOS-aligned dataloader with best-fit packing.
-    Every row starts with BOS. Documents packed using best-fit to minimize cropping.
-    When no document fits remaining space, crops shortest doc to fill exactly.
-    100% utilization (no padding).
-    """
     assert split in ["train", "val"]
     row_capacity = T + 1
     batches = _document_batches(split)
@@ -76,7 +49,6 @@ def make_dataloader(tokenizer, B, T, split, buffer_size=1000):
         token_lists = tokenizer.encode(doc_batch, prepend=bos_token)
         doc_buffer.extend(token_lists)
 
-    # Pre-allocate buffers: [inputs (B*T) | targets (B*T)]
     row_buffer = torch.empty((B, row_capacity), dtype=torch.long)
     cpu_buffer = torch.empty(2 * B * T, dtype=torch.long, pin_memory=True)
     gpu_buffer = torch.empty(2 * B * T, dtype=torch.long, device="cuda")
@@ -94,7 +66,6 @@ def make_dataloader(tokenizer, B, T, split, buffer_size=1000):
 
                 remaining = row_capacity - pos
 
-                # Find largest doc that fits entirely
                 best_idx = -1
                 best_len = 0
                 for i, doc in enumerate(doc_buffer):
@@ -108,7 +79,6 @@ def make_dataloader(tokenizer, B, T, split, buffer_size=1000):
                     row_buffer[row_idx, pos:pos + len(doc)] = torch.tensor(doc, dtype=torch.long)
                     pos += len(doc)
                 else:
-                    # No doc fits — crop shortest to fill remaining
                     shortest_idx = min(range(len(doc_buffer)), key=lambda i: len(doc_buffer[i]))
                     doc = doc_buffer.pop(shortest_idx)
                     row_buffer[row_idx, pos:pos + remaining] = torch.tensor(doc[:remaining], dtype=torch.long)
