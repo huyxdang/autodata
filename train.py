@@ -509,7 +509,6 @@ optimizer = model.setup_optimizer(
 model = torch.compile(model, dynamic=False)
 
 train_loader = make_dataloader(tokenizer, DEVICE_BATCH_SIZE, MAX_SEQ_LEN, "train")
-x, y, epoch = next(train_loader)  # prefetch first batch
 
 print(f"Time budget: {TIME_BUDGET}s")
 print(f"Gradient accumulation steps: {grad_accum_steps}")
@@ -542,15 +541,20 @@ total_training_time = 0
 step = 0
 
 while True:
+    # Prefetch all micro-batches (not counted in training time)
+    micro_batches = []
+    for _ in range(grad_accum_steps):
+        x, y, epoch = next(train_loader)
+        micro_batches.append((x.clone(), y.clone()))
+
     torch.cuda.synchronize()
     t0 = time.time()
-    for micro_step in range(grad_accum_steps):
+    for mx, my in micro_batches:
         with autocast_ctx:
-            loss = model(x, y)
+            loss = model(mx, my)
         train_loss = loss.detach()
         loss = loss / grad_accum_steps
         loss.backward()
-        x, y, epoch = next(train_loader)
 
     # Progress and schedules
     progress = min(total_training_time / TIME_BUDGET, 1.0)

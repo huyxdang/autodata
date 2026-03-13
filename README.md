@@ -10,11 +10,12 @@ The hypothesis: maybe smarter data curation matters more than a better architect
 
 Give an AI agent the repo, point it at `program.md`, and let it run autonomously. It modifies the data pipeline, trains for 5 minutes, checks if val_bpb improved, keeps or discards, and repeats. You wake up to a log of data experiments and (hopefully) a better model — trained on the same architecture, just fed better data.
 
-The repo has five files that matter:
+The repo has six files that matter:
 
 - **`data.py`** — the data pipeline the agent edits. Document filtering, preprocessing, mixing, curriculum ordering, packing — anything that changes what the model sees. **This file is edited and iterated on by the agent.**
+- **`explore.py`** — throwaway data exploration scripts. The agent writes these to analyze data on Modal (`modal run modal_app.py --explore-script explore.py`). **Written by the agent as needed.**
 - **`program.md`** — instructions for the agent. **This file is edited and iterated on by the human.**
-- **`modal_app.py`** — Modal integration: sends `data.py` to a remote GPU, runs training, returns metrics. **Set up once.**
+- **`modal_app.py`** — Modal integration: sends `data.py` to a remote GPU, runs training, returns metrics. Also runs exploration scripts on remote CPU. **Set up once.**
 - **`prepare.py`** — fixed infrastructure: downloads training data, trains a BPE tokenizer, provides evaluation metric and base data utilities. **Read-only.**
 - **`train.py`** — fixed model: GPT architecture, Muon + AdamW optimizer, training loop. **Read-only.**
 
@@ -69,7 +70,8 @@ The `program.md` file is essentially a lightweight "skill" that tells the agent 
 prepare.py      — constants, data prep + runtime utilities (do not modify)
 train.py        — model, optimizer, training loop (do not modify)
 data.py         — data pipeline (agent modifies this)
-modal_app.py    — Modal integration (sends data.py to remote GPU)
+explore.py      — data exploration scripts (agent writes these, run on Modal)
+modal_app.py    — Modal integration (sends data.py to remote GPU, explore.py to remote CPU)
 program.md      — agent instructions
 pyproject.toml  — dependencies
 ```
