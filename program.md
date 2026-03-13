@@ -34,8 +34,6 @@ Each experiment runs on a remote GPU via Modal. The training script runs for a *
 
 **The goal is simple: get the lowest val_bpb by improving the data pipeline.** The model sees exactly the same architecture and hyperparameters every run. The only variable is what data it trains on and how that data is processed. Since the time budget is fixed at 5 minutes, filtering out low-quality data means the model spends more of its budget on high-quality data.
 
-**CPU cost matters.** The data pipeline runs on CPU and the timer includes data loading. Heavy processing eats into the 5-minute training budget, meaning fewer training steps.
-
 **VRAM** should stay roughly constant since the model is fixed, but data pipeline changes (e.g. document length distribution) could affect it slightly.
 
 **Simplicity criterion**: All else being equal, simpler is better. A small improvement that adds ugly complexity is not worth it. Conversely, removing something and getting equal or better results is a great outcome — that's a simplification win. When evaluating whether to keep a change, weigh the complexity cost against the improvement magnitude. A 0.001 val_bpb improvement that adds 20 lines of hacky code? Probably not worth it. A 0.001 val_bpb improvement from deleting code? Definitely keep. An improvement of ~0 but much simpler code? Keep.

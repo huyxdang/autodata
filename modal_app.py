@@ -7,6 +7,9 @@ One-time data setup:
 Run a training experiment:
     modal run modal_app.py
 
+Run a data exploration script (CPU only):
+    modal run modal_app.py --explore-script explore.py
+
 The agent edits data.py locally. This script sends it to Modal,
 which processes the data and trains using a remote GPU.
 Only data.py (~KB) goes up, only metrics come back.
@@ -87,12 +90,41 @@ def train(data_py: str):
     return {"output": result.stdout + result.stderr, "returncode": result.returncode}
 
 
+@app.function(
+    image=image,
+    volumes={VOLUME_PATH: volume},
+    timeout=600,
+)
+def explore(script: str):
+    """Run a data exploration script on CPU (no GPU)."""
+    with open("/app/explore.py", "w") as f:
+        f.write(script)
+
+    import subprocess
+
+    result = subprocess.run(
+        ["python", "explore.py"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+        timeout=300,
+    )
+    return {"output": result.stdout + result.stderr, "returncode": result.returncode}
+
+
 @app.local_entrypoint()
-def main(prepare: bool = False, num_shards: int = 10):
+def main(prepare: bool = False, num_shards: int = 10, explore_script: str = ""):
     if prepare:
         print("Preparing data on Modal (downloading shards + training tokenizer)...")
         result = prepare_data.remote(num_shards)
         print(result["output"])
+        sys.exit(result["returncode"])
+
+    if explore_script:
+        with open(explore_script) as f:
+            script = f.read()
+        result = explore.remote(script)
+        print(result["output"], end="")
         sys.exit(result["returncode"])
 
     # Read current data.py and send to Modal for training

@@ -5,8 +5,6 @@ from prepare import (
     MAX_SEQ_LEN,
 )
 
-# aa
-
 def filter_document(text):
     return True
 
