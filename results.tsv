@@ -1,0 +1,63 @@
+commit	val_bpb	memory_gb	status	description
+2accf68	0.996599	44.0	keep	baseline (no filtering)
+c76ee9c	0.996458	44.0	keep	filter docs shorter than 100 chars
+56e57f5	0.997331	44.0	discard	filter highly repetitive docs (unique word ratio < 0.1)
+6f659bc	0.996476	44.0	discard	raise min doc length to 200 chars
+faa80ab	0.994869	44.0	keep	truncate docs longer than 8K chars
+313fee1	0.995493	44.0	discard	lower truncation to 4K chars
+75a9e86	0.999369	44.0	discard	clean whitespace: strip + collapse newlines (regex CPU cost too high)
+75563e9	1.019490	44.0	discard	filter docs with low alpha ratio < 40% (too aggressive)
+e32e2c6	0.998477	44.0	discard	reduce packing buffer to 200 (worse packing quality)
+bc4216c	0.997807	44.0	discard	sorted buffer with bisect (tuple comparison overhead)
+369b9c2	0.994581	44.0	keep	truncate docs at 6K chars
+e439231	0.995661	44.0	discard	truncate docs at 5K chars (too aggressive)
+14aaa53	0.995330	44.0	discard	increase tokenizer batch size to 256
+1dc561f	0.996625	44.0	discard	truncate docs at 7K chars
+b8a7ebc	0.993830	44.0	keep	inline filter+truncation in list comprehension
+da1fcd5	0.995798	44.0	discard	remove 100 char min filter
+e034f05	0.995860	44.0	discard	numpy vectorized packing (overhead worse than simple loop)
+c211bb4	0.994422	44.0	discard	drop tokenized docs shorter than 10 tokens
+aeb0e08	0.993975	44.0	discard	increase tokenizer threads to 16
+edf7b45	0.997170	44.0	discard	token-level truncation at 1500 tokens
+e545a59	0.995828	44.0	discard	swap-and-pop for O(1) removal
+7a71921	0.993254	44.0	keep	eliminate _document_batches generator; inline into refill_buffer
+e823172	0.000000	0.0	    crash	hash-based dedup (per-doc loop too slow; timeout)
+4bfb47e	0.993698	44.0	discard	increase raw batch size to 256
+2e5657e	0.996330	44.0	discard	sequential packing (packing quality matters more than CPU savings)
+a4886f6	0.995295	44.0	discard	buffer_size=1500 (scan cost too high)
+a374d34	1.083743	44.0	discard	pre-convert docs to tensors (massive slowdown)
+3cb15d0	0.995764	44.0	discard	min length 50 instead of 100
+8a46fd6	0.995964	44.0	discard	buffer_size=750
+02e8f08	0.993547	44.0	discard	min length 150
+f04c615	0.993734	44.0	discard	text.strip() before truncation
+7b4987a	0.994594	44.0	discard	flat list rows with single tensor conversion
+9940a7c	0.995292	44.0	discard	no truncation (confirms 6K truncation still helps)
+a8b40a5	0.994572	44.0	discard	char diversity filter (set() overhead too high)
+a076abc	0.996287	44.0	discard	filter out long docs entirely instead of truncating
+01cb020	0.994430	44.0	discard	6500 char truncation
+4c39c90	0.999689	44.0	discard	skip first 100 chars (doc beginnings are valuable)
+c079b6b	0.994466	44.0	discard	combined: truncate 5500 + min length 150
+8bbdf83	0.994828	44.0	discard	min length 75 (noise range)
+4a1cb5d	0.994750	44.0	discard	shuffled row group reading (noise range; adds complexity)
+cbba883	0.992705	44.0	keep	track shortest during best-fit scan (eliminate second O(n) min)
+e5cb890	0.993465	44.0	discard	reuse best_len (noise; no improvement)
+adc4541	0.992940	44.0	discard	parallel lengths list (per-doc append overhead negated gains)
+c741563	0.993348	44.0	discard	parallel len_buffer with extend + range loop
+12d5ab5	0.993583	44.0	discard	pre-compute lengths with map(len)
+2970c4a	0.993430	44.0	discard	array.array + torch.frombuffer
+3c74ace	0.993634	44.0	discard	min length 125
+8b20677	0.993896	44.0	discard	build row as flat list then single tensor conversion
+9569345	1.000199	44.0	discard	inline parquet reading: full row groups (tokenizer batches too large)
+b420744	0.993861	44.0	discard	early exit best-fit scan on exact match (breaks shortest tracking)
+cb5cf2d	1.000094	44.0	discard	reduce tokenizer threads from 8 to 4 (8 is optimal)
+7522d13	0.995110	44.0	discard	keep cropped doc remainder in buffer (fragments hurt quality)
+c28c056	0.995015	44.0	discard	smaller raw batches 64 (more overhead per encode call)
+7045b14	0.995734	44.0	discard	limit scan to first 200 docs (worse packing quality)
+ab432c4	0.995200	44.0	discard	swap-and-pop O(1) removal (randomizes buffer order; hurts packing)
+fcc45ba	0.994950	44.0	discard	pre-fill buffer before main loop (redundant)
+b87dcb2	0.993124	44.0	discard	12 tokenizer threads (noise range)
+db7e00d	0.994133	44.0	discard	range+index instead of enumerate (noise)
+e7c0dcb	0.993734	44.0	discard	remove unused functions and imports (no effect)
+0b84943	0.993895	44.0	discard	remove pin_memory (noise)
+bbd87c3	0.994151	44.0	discard	truncate at 5800 chars (noise)
+f13c4bd	1.001270	44.0	discard	simple concatenation packing (cross-boundary splits hurt quality)
