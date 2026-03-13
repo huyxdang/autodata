@@ -1,3 +1,4 @@
+import threading
 import torch
 
 from prepare import (
@@ -34,14 +35,35 @@ def make_dataloader(tokenizer, B, T, split, buffer_size=1000):
     bos_token = tokenizer.get_bos_token_id()
     doc_buffer = []
     epoch = 1
+    lock = threading.Lock()
+    ready = threading.Event()
 
-    def refill_buffer():
+    def bg_refill():
         nonlocal epoch
-        doc_batch, epoch = next(raw_batches)
-        filtered = [text[:6000] for text in doc_batch if len(text) >= 100]
-        if filtered:
-            token_lists = tokenizer.encode(filtered, prepend=bos_token)
-            doc_buffer.extend(token_lists)
+        while True:
+            with lock:
+                need_refill = len(doc_buffer) < buffer_size * 2
+            if not need_refill:
+                ready.wait(timeout=0.001)
+                ready.clear()
+                continue
+            doc_batch, ep = next(raw_batches)
+            filtered = [text[:6000] for text in doc_batch if len(text) >= 100]
+            if filtered:
+                token_lists = tokenizer.encode(filtered, prepend=bos_token)
+                with lock:
+                    epoch = ep
+                    doc_buffer.extend(token_lists)
+
+    t = threading.Thread(target=bg_refill, daemon=True)
+    t.start()
+
+    def wait_for_buffer():
+        while True:
+            with lock:
+                if len(doc_buffer) >= buffer_size:
+                    return
+            ready.set()
 
     row_buffer = torch.empty((B, row_capacity), dtype=torch.long)
     cpu_buffer = torch.empty(2 * B * T, dtype=torch.long, pin_memory=True)
@@ -55,8 +77,7 @@ def make_dataloader(tokenizer, B, T, split, buffer_size=1000):
         for row_idx in range(B):
             pos = 0
             while pos < row_capacity:
-                while len(doc_buffer) < buffer_size:
-                    refill_buffer()
+                wait_for_buffer()
 
                 remaining = row_capacity - pos
 
