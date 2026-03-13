@@ -1,30 +1,55 @@
+import os
 import torch
+import pyarrow.parquet as pq
 
 from prepare import (
     _document_batches as _raw_document_batches,
     MAX_SEQ_LEN,
+    DATA_DIR,
+    VAL_FILENAME,
 )
 
 
+def _interleaved_document_batches(split, tokenizer_batch_size=128):
+    """Read from shards in round-robin order for better diversity."""
+    parquet_paths = sorted(
+        os.path.join(DATA_DIR, f)
+        for f in os.listdir(DATA_DIR)
+        if f.endswith(".parquet") and not f.endswith(".tmp")
+    )
+    val_path = os.path.join(DATA_DIR, VAL_FILENAME)
+    if split == "train":
+        parquet_paths = [p for p in parquet_paths if p != val_path]
+    else:
+        parquet_paths = [val_path]
 
-def filter_document(text):
-    return True
+    epoch = 1
+    while True:
+        # Open all shards and get row group iterators
+        shard_iters = []
+        for filepath in parquet_paths:
+            pf = pq.ParquetFile(filepath)
+            shard_iters.append((pf, 0))  # (file, current_row_group_idx)
 
-
-def process_document(text):
-    return text
+        # Round-robin across shards, one row group at a time
+        active = list(range(len(shard_iters)))
+        while active:
+            next_active = []
+            for idx in active:
+                pf, rg_idx = shard_iters[idx]
+                if rg_idx < pf.num_row_groups:
+                    rg = pf.read_row_group(rg_idx)
+                    batch = rg.column('text').to_pylist()
+                    shard_iters[idx] = (pf, rg_idx + 1)
+                    next_active.append(idx)
+                    for i in range(0, len(batch), tokenizer_batch_size):
+                        yield batch[i:i + tokenizer_batch_size], epoch
+            active = next_active
+        epoch += 1
 
 
 def _document_batches(split, tokenizer_batch_size=128):
-    for doc_batch, epoch in _raw_document_batches(split, tokenizer_batch_size):
-        processed = []
-        for text in doc_batch:
-            if filter_document(text):
-                text = process_document(text)
-                if text:
-                    processed.append(text)
-        if processed:
-            yield processed, epoch
+    return _interleaved_document_batches(split, tokenizer_batch_size)
 
 
 def make_dataloader(tokenizer, B, T, split, buffer_size=1000):
