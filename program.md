@@ -1,6 +1,6 @@
 # autodata
 
-This is an experiment to optimize training data to train a language model.
+Optimize training data for language model pre-training — both what the model sees (filtering, truncation, quality selection, deduplication, etc.) and how it's arranged (curriculum ordering, mixing, packing strategy, etc.) — to minimize val_bpb.
 
 ## Setup
 
@@ -101,15 +101,16 @@ The experiment runs on a dedicated branch (e.g. `autodata/mar12`).
 
 LOOP FOREVER:
 
-1. Look at the git state: the current branch/commit we're on
-2. Modify `data.py` with a data pipeline idea.
-3. git commit
-4. Run the experiment: `modal run modal_app.py > run.log 2>&1` (redirect everything — do NOT use tee or let output flood your context)
-5. Read out the results: `grep "^val_bpb:\|^peak_vram_mb:" run.log`
-6. If the grep output is empty, the run crashed. Run `tail -n 50 run.log` to read the Python stack trace and attempt a fix. If you can't get things to work after more than a few attempts, give up.
-7. Record the results in the tsv (NOTE: do not commit the results.tsv file, leave it untracked by git)
-8. If val_bpb improved (lower), you "advance" the branch, keeping the git commit
-9. If val_bpb is equal or worse, you git reset back to where you started
+1. Look at the git state and review `results.tsv` to understand what's been tried and what the current best is.
+2. **Explore the data** when forming a new hypothesis, when stuck, when you haven't looked at the data recently, or simply find it useful to. Don't explore every single iteration — use your judgment. When you do explore, write whatever analysis code is useful for what you're curious about: sample documents, compute statistics, look at length distributions, spot junk, check for repetition, etc. Let what you actually see drive your hypothesis — don't just guess.
+3. Modify `data.py` with a data idea informed by your exploration.
+4. git commit
+5. Run the experiment: `modal run modal_app.py > run.log 2>&1` (redirect everything — do NOT use tee or let output flood your context)
+6. Read out the results: `grep "^val_bpb:\|^peak_vram_mb:" run.log`
+7. If the grep output is empty, the run crashed. Run `tail -n 50 run.log` to read the Python stack trace and attempt a fix. If you can't get things to work after more than a few attempts, give up.
+8. Record the results in the tsv (NOTE: do not commit the results.tsv file, leave it untracked by git)
+9. If val_bpb improved (lower), you "advance" the branch, keeping the git commit
+10. If val_bpb is equal or worse, you git reset back to where you started
 
 The idea is that you are a completely autonomous researcher trying things out. If they work, keep. If they don't, discard. And you're advancing the branch so that you can iterate. If you feel like you're getting stuck in some way, you can rewind but you should probably do this very very sparingly (if ever).
 

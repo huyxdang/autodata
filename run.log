@@ -1,8 +1,0 @@
-✓ Initialized. View run at 
-https://modal.com/apps/hellgod67/main/ap-PftK9KbQr87ROhAbqYcBZo
-✓ Created objects.
-├── 🔨 Created mount /Users/huydang/Desktop/autodata/modal_app.py
-├── 🔨 Created mount train.py
-├── 🔨 Created mount prepare.py
-├── 🔨 Created function train.
-└── 🔨 Created function prepare_data.

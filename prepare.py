@@ -38,10 +38,10 @@ EVAL_TOKENS = 40 * 524288  # number of tokens for val eval
 CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "autoresearch")
 DATA_DIR = os.path.join(CACHE_DIR, "data")
 TOKENIZER_DIR = os.path.join(CACHE_DIR, "tokenizer")
-BASE_URL = "https://huggingface.co/datasets/karpathy/climbmix-400b-shuffle/resolve/main"
-MAX_SHARD = 6542 # the last datashard is shard_06542.parquet
-VAL_SHARD = MAX_SHARD  # pinned validation shard (shard_06542)
-VAL_FILENAME = f"shard_{VAL_SHARD:05d}.parquet"
+BASE_URL = "https://huggingface.co/datasets/HuggingFaceFW/fineweb/resolve/main/sample/10BT"
+MAX_SHARD = 9  # shards 000_00000 through 009_00000 (10 total)
+VAL_SHARD = MAX_SHARD  # pinned validation shard (009_00000)
+VAL_FILENAME = f"{VAL_SHARD:03d}_00000.parquet"
 VOCAB_SIZE = 8192
 
 # BPE split pattern (GPT-4 style, with \p{N}{1,2} instead of {1,3})
@@ -56,7 +56,7 @@ BOS_TOKEN = "<|reserved_0|>"
 
 def download_single_shard(index):
     """Download one parquet shard with retries. Returns True on success."""
-    filename = f"shard_{index:05d}.parquet"
+    filename = f"{index:03d}_00000.parquet"
     filepath = os.path.join(DATA_DIR, filename)
     if os.path.exists(filepath):
         return True
@@ -97,7 +97,7 @@ def download_data(num_shards, download_workers=8):
         ids.append(VAL_SHARD)
 
     # Count what's already downloaded
-    existing = sum(1 for i in ids if os.path.exists(os.path.join(DATA_DIR, f"shard_{i:05d}.parquet")))
+    existing = sum(1 for i in ids if os.path.exists(os.path.join(DATA_DIR, f"{i:03d}_00000.parquet")))
     if existing == len(ids):
         print(f"Data: all {len(ids)} shards already downloaded at {DATA_DIR}")
         return
