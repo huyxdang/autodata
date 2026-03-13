@@ -1,4 +1,3 @@
-import threading
 import torch
 
 from prepare import (
@@ -7,63 +6,40 @@ from prepare import (
 )
 
 
-def sample_documents(n=10):
-    docs = []
-    for batch, _ in _raw_document_batches("train"):
-        docs.extend(batch[:n - len(docs)])
-        if len(docs) >= n:
-            break
-    return docs[:n]
-
 
 def filter_document(text):
-    if len(text) < 100:
-        return False
     return True
 
 
 def process_document(text):
-    if len(text) > 6000:
-        text = text[:6000]
     return text
+
+
+def _document_batches(split, tokenizer_batch_size=128):
+    for doc_batch, epoch in _raw_document_batches(split, tokenizer_batch_size):
+        processed = []
+        for text in doc_batch:
+            if filter_document(text):
+                text = process_document(text)
+                if text:
+                    processed.append(text)
+        if processed:
+            yield processed, epoch
 
 
 def make_dataloader(tokenizer, B, T, split, buffer_size=1000):
     assert split in ["train", "val"]
     row_capacity = T + 1
-    raw_batches = _raw_document_batches(split)
+    batches = _document_batches(split)
     bos_token = tokenizer.get_bos_token_id()
     doc_buffer = []
     epoch = 1
-    lock = threading.Lock()
-    ready = threading.Event()
 
-    def bg_refill():
+    def refill_buffer():
         nonlocal epoch
-        while True:
-            with lock:
-                need_refill = len(doc_buffer) < buffer_size * 2
-            if not need_refill:
-                ready.wait(timeout=0.001)
-                ready.clear()
-                continue
-            doc_batch, ep = next(raw_batches)
-            filtered = [text[:6000] for text in doc_batch if len(text) >= 100]
-            if filtered:
-                token_lists = tokenizer.encode(filtered, prepend=bos_token)
-                with lock:
-                    epoch = ep
-                    doc_buffer.extend(token_lists)
-
-    t = threading.Thread(target=bg_refill, daemon=True)
-    t.start()
-
-    def wait_for_buffer():
-        while True:
-            with lock:
-                if len(doc_buffer) >= buffer_size:
-                    return
-            ready.set()
+        doc_batch, epoch = next(batches)
+        token_lists = tokenizer.encode(doc_batch, prepend=bos_token)
+        doc_buffer.extend(token_lists)
 
     row_buffer = torch.empty((B, row_capacity), dtype=torch.long)
     cpu_buffer = torch.empty(2 * B * T, dtype=torch.long, pin_memory=True)
@@ -77,28 +53,25 @@ def make_dataloader(tokenizer, B, T, split, buffer_size=1000):
         for row_idx in range(B):
             pos = 0
             while pos < row_capacity:
-                wait_for_buffer()
+                while len(doc_buffer) < buffer_size:
+                    refill_buffer()
 
                 remaining = row_capacity - pos
 
                 best_idx = -1
                 best_len = 0
-                shortest_idx = 0
-                shortest_len = 999999
                 for i, doc in enumerate(doc_buffer):
                     doc_len = len(doc)
                     if doc_len <= remaining and doc_len > best_len:
                         best_idx = i
                         best_len = doc_len
-                    if doc_len < shortest_len:
-                        shortest_idx = i
-                        shortest_len = doc_len
 
                 if best_idx >= 0:
                     doc = doc_buffer.pop(best_idx)
                     row_buffer[row_idx, pos:pos + len(doc)] = torch.tensor(doc, dtype=torch.long)
                     pos += len(doc)
                 else:
+                    shortest_idx = min(range(len(doc_buffer)), key=lambda i: len(doc_buffer[i]))
                     doc = doc_buffer.pop(shortest_idx)
                     row_buffer[row_idx, pos:pos + remaining] = torch.tensor(doc[:remaining], dtype=torch.long)
                     pos += remaining
