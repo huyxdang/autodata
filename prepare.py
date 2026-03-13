@@ -7,6 +7,8 @@ Usage:
     python prepare.py --num-shards 8   # download only 8 shards (for testing)
 
 Data and tokenizer are stored in ~/.cache/autoresearch/.
+
+aa
 """
 
 import os
